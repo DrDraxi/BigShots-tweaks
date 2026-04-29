@@ -1,0 +1,115 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>BigShotsTweaks</AssemblyName>
+    <RootNamespace>BigShotsTweaks</RootNamespace>
+    <Version>1.0.0</Version>
+    <ReleasesDir>$(MSBuildThisFileDirectory)..\Releases</ReleasesDir>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <Deterministic>true</Deterministic>
+    <DebugType>embedded</DebugType>
+    <GameDir>C:\Program Files (x86)\Steam\steamapps\common\BIG SHOTS</GameDir>
+    <ManagedDir>$(GameDir)\BigShots_Data\Managed</ManagedDir>
+    <MelonDir>$(GameDir)\MelonLoader\net35</MelonDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="MelonLoader">
+      <HintPath>$(MelonDir)\MelonLoader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(MelonDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Fusion.Runtime">
+      <HintPath>$(ManagedDir)\Fusion.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(ManagedDir)\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(ManagedDir)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(ManagedDir)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(ManagedDir)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>$(ManagedDir)\Unity.InputSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ManagedDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(ManagedDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.Networking.PhotonFusion">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.Networking.PhotonFusion.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.Hangar">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.Hangar.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.UI">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.Player">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.Player.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.Common.Runtime">
+      <HintPath>$(ManagedDir)\AlterEyes.Common.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="DeployToMods" AfterTargets="Build" Condition="Exists('$(GameDir)\Mods')">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\Mods" />
+    <Message Text="Deployed BigShotsTweaks.dll to $(GameDir)\Mods" Importance="high" />
+  </Target>
+
+  <Target Name="StageRelease" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <StagingDir>$(ReleasesDir)\staging\BigShotsTweaks-v$(Version)</StagingDir>
+      <ZipPath>$(ReleasesDir)\BigShotsTweaks-v$(Version).zip</ZipPath>
+      <ScriptsDir>$(MSBuildThisFileDirectory)..\scripts</ScriptsDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(ReleasesDir)" />
+    <RemoveDir Directories="$(ReleasesDir)\staging" />
+    <MakeDir Directories="$(StagingDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(StagingDir)" />
+    <Copy SourceFiles="$(ScriptsDir)\Setup-BigShotsFolder.ps1" DestinationFolder="$(StagingDir)" />
+    <Copy SourceFiles="$(ScriptsDir)\Setup-BigShotsFolder.bat" DestinationFolder="$(StagingDir)" />
+    <Delete Files="$(ZipPath)" />
+    <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(ZipPath)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(ReleasesDir)\BigShotsTweaks-v$(Version).dll" />
+    <Message Text="Staged release: $(ZipPath)" Importance="high" />
+  </Target>
+
+</Project>

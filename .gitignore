@@ -1,0 +1,22 @@
+# Decompiled game source — regenerate via ilspycmd, see README
+decompiled/
+
+# Build output
+mod/bin/
+mod/obj/
+
+# Local release staging — uploaded as GitHub Release assets instead
+Releases/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# Misc
+*.stackdump
+
+# Local Claude Code / MCP config (user-specific paths)
+.mcp.json
+.claude/
