@@ -1,10 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using AlterEyes.BigShots.Hangar;
+using AlterEyes.BigShots.InformationDisplay;
 using AlterEyes.BigShots.Networking;
+using AlterEyes.BigShots.Platform;
 using AlterEyes.BigShots.Player;
 using AlterEyes.BigShots.Shifts;
+using AlterEyes.BigShots.Waves;
 using AlterEyes.Common;
 using Fusion;
 using HarmonyLib;
@@ -14,7 +18,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.1.1", "DrDraxi")]
+[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.2.0", "DrDraxi")]
 [assembly: MelonGame("AlterEyes", "BigShots")]
 
 namespace BigShotsTweaks;
@@ -24,9 +28,11 @@ public class Mod : MelonMod
     private static MelonPreferences_Category _cat = null!;
     private static MelonPreferences_Entry<int> _maxPlayers = null!;
     private static MelonPreferences_Entry<bool> _autoContinueOffline = null!;
+    private static MelonPreferences_Entry<float> _difficultyK = null!;
 
     public static int MaxPlayers => _maxPlayers.Value;
     public static bool AutoContinueOffline => _autoContinueOffline.Value;
+    public static float DifficultyScalingPerExtraPlayer => _difficultyK.Value;
 
     internal const int SliderMin = 2;
     internal const int SliderMax = 4;
@@ -57,8 +63,14 @@ public class Mod : MelonMod
             "Auto-Continue Offline",
             "Automatically click the 'Continue Offline' button when the startup connection-failed popup appears.");
 
+        _difficultyK = _cat.CreateEntry(
+            "DifficultyScalingPerExtraPlayer", 0.45f,
+            "Difficulty scaling per extra player",
+            "Sub-linear difficulty curve coefficient. Effective multiplier = 1 + (PlayerCount-1) * k. Vanilla applies a flat 1.5x for any MP party size; default k=0.45 gives 2P=1.45x, 3P=1.90x, 4P=2.35x. Set to 0 to disable scaling beyond solo.",
+            validator: new ValueRange<float>(0f, 2f));
+
         _cat.SaveToFile(printmsg: false);
-        LoggerInstance.Msg($"Loaded. MaxPlayers={_maxPlayers.Value} AutoContinue={_autoContinueOffline.Value}");
+        LoggerInstance.Msg($"Loaded. MaxPlayers={_maxPlayers.Value} AutoContinue={_autoContinueOffline.Value} DifficultyK={_difficultyK.Value}");
     }
 
     public override void OnUpdate()
@@ -68,6 +80,37 @@ public class Mod : MelonMod
         {
             InjectedSliderRow.SetActive(MirrorSourceRow.activeSelf);
         }
+
+        UpdateDifficultyScaling();
+    }
+
+    private static PlayerDifficultyScaling[]? _difficultyScalings;
+    private static float _lastAppliedDifficulty = -1f;
+
+    private static void UpdateDifficultyScaling()
+    {
+        if (_difficultyScalings == null || _difficultyScalings.Length == 0)
+        {
+            _difficultyScalings = Resources.FindObjectsOfTypeAll<PlayerDifficultyScaling>();
+            if (_difficultyScalings.Length == 0) return;
+        }
+
+        int count = 1;
+        var nm = Unique<NetworkManager>.UniqueInstance;
+        if (nm != null && nm.Runner != null)
+        {
+            int active = nm.Runner.ActivePlayers.Count();
+            if (active > 0) count = active;
+        }
+
+        float k = _difficultyK?.Value ?? 0.45f;
+        float mult = count <= 1 ? 1f : 1f + (count - 1) * k;
+        if (System.Math.Abs(mult - _lastAppliedDifficulty) < 0.0005f) return;
+        _lastAppliedDifficulty = mult;
+
+        foreach (var s in _difficultyScalings)
+            if (s != null) s.PlayerAmountMultiplier = mult;
+        MelonLogger.Msg($"[Difficulty] PlayerCount={count} k={k:F2} -> multiplier={mult:F2}");
     }
 }
 
@@ -104,6 +147,59 @@ internal static class Patch_HandlePlayerLeft
         {
             arg0.SessionInfo.IsOpen = true;
         }
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(SteamFriendManager), "HandleGameInviteSent")]
+internal static class Patch_SteamFriendManager_InviteLobbyCap
+{
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        => SteamLobbyTranspilerHelpers.SwapLdcI4_2WithMaxPlayers(instructions);
+}
+
+[HarmonyPatch(typeof(SteamFriendManager), "OnCreatedSession")]
+internal static class Patch_SteamFriendManager_SessionLobbyCap
+{
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        => SteamLobbyTranspilerHelpers.SwapLdcI4_2WithMaxPlayers(instructions);
+}
+
+internal static class SteamLobbyTranspilerHelpers
+{
+    public static IEnumerable<CodeInstruction> SwapLdcI4_2WithMaxPlayers(IEnumerable<CodeInstruction> instructions)
+    {
+        var getter = AccessTools.PropertyGetter(typeof(Mod), "MaxPlayers");
+        foreach (var ins in instructions)
+        {
+            if (ins.opcode == OpCodes.Ldc_I4_2)
+            {
+                yield return new CodeInstruction(OpCodes.Call, getter);
+            }
+            else
+            {
+                yield return ins;
+            }
+        }
+    }
+}
+
+[HarmonyPatch(typeof(DebriefPanel), "GetStatOfTypeForLocalPlayer")]
+internal static class Patch_DebriefPanel_LocalIndex
+{
+    private static readonly System.Reflection.MethodInfo? _statForPlayer =
+        AccessTools.Method(typeof(DebriefPanel), "GetStatOfTypeForPlayer");
+
+    private static bool Prefix(DebriefPanel __instance, StatTypes type, ref int __result)
+    {
+        if (_statForPlayer == null) return true;
+        var pm = PlayerManager.Instance;
+        if (pm == null) return true;
+        var local = pm.GetLocalPlayer();
+        if (local == null) return true;
+        int idx = pm.AllPlayers.IndexOf(local);
+        if (idx < 0) return true;
+        __result = (int)_statForPlayer.Invoke(__instance, new object[] { type, idx });
         return false;
     }
 }

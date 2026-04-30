@@ -60,11 +60,14 @@ The config is auto-created on first run at `BIG SHOTS/UserData/BigShotsTweaks.cf
 
 ```toml
 [BigShotsTweaks]
-MaxPlayers = 4                  # 2-4 (hard ceiling; see the "why 4 and not 8" note above)
-AutoContinueOffline = true      # auto-click the startup "continue offline" button
+MaxPlayers = 4                          # 2-4 (hard ceiling; see "why 4 and not 8" above)
+AutoContinueOffline = true              # auto-click the startup "continue offline" button
+DifficultyScalingPerExtraPlayer = 0.45  # 0-2 sub-linear curve coefficient
 ```
 
 The in-game slider (Settings -> Game) writes the same file live.
+
+**Difficulty scaling.** Vanilla applies a flat 1.5x difficulty for any party size 2-N. The mod replaces that with `1 + (PlayerCount - 1) * k` where `k` is `DifficultyScalingPerExtraPlayer`. With the default `k = 0.45` you get 2P=1.45x, 3P=1.90x, 4P=2.35x. Set `k = 0` to disable scaling, or higher to make 4P harsher.
 
 ---
 

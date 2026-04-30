@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>BigShotsTweaks</AssemblyName>
     <RootNamespace>BigShotsTweaks</RootNamespace>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <ReleasesDir>$(MSBuildThisFileDirectory)..\Releases</ReleasesDir>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
@@ -85,6 +85,26 @@
     </Reference>
     <Reference Include="AlterEyes.BigShots.Shifts">
       <HintPath>$(ManagedDir)\AlterEyes.BigShots.Shifts.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.Waves">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.Waves.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.Config">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.Config.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.GameModes">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.GameModes.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.Platform">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.Platform.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AlterEyes.BigShots.InformationDisplay">
+      <HintPath>$(ManagedDir)\AlterEyes.BigShots.InformationDisplay.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="AlterEyes.Common.Runtime">
