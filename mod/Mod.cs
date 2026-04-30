@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using AlterEyes.BigShots.Hangar;
 using AlterEyes.BigShots.Networking;
 using AlterEyes.BigShots.Player;
+using AlterEyes.BigShots.Shifts;
 using AlterEyes.Common;
 using Fusion;
 using HarmonyLib;
@@ -11,9 +13,8 @@ using MelonLoader.Preferences;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Linq;
 
-[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.0.0", "DrDraxi")]
+[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.1.0", "DrDraxi")]
 [assembly: MelonGame("AlterEyes", "BigShots")]
 
 namespace BigShotsTweaks;
@@ -103,6 +104,127 @@ internal static class Patch_HandlePlayerLeft
             arg0.SessionInfo.IsOpen = true;
         }
         return false;
+    }
+}
+
+[HarmonyPatch(typeof(DropshipManager), "SpawnDropships")]
+internal static class Patch_DropshipManager_ClampSpawn
+{
+    private static readonly System.Reflection.FieldInfo? _pathsField =
+        AccessTools.Field(typeof(DropshipManager), "_dropshipPaths");
+    private static readonly System.Reflection.MethodInfo? _rpcActivate =
+        AccessTools.Method(typeof(DropshipManager), "RPC_ActivateDropships");
+    private static readonly System.Reflection.MethodInfo? _onDropShipSpawned =
+        AccessTools.Method(typeof(DropshipManager), "OnDropShipSpawned");
+    private static readonly System.Reflection.MethodInfo? _rpcDropShipsSpawned =
+        AccessTools.Method(typeof(DropshipManager), "RPC_DropShipsSpawned");
+    private static readonly System.Reflection.MethodInfo? _handlePickup =
+        AccessTools.Method(typeof(DropshipManager), "HandlePickupCompleted");
+
+    private static bool Prefix(DropshipManager __instance)
+    {
+        if (_pathsField == null) return true;
+        if (!(_pathsField.GetValue(__instance) is System.Collections.IList paths)) return true;
+        var pm = PlayerManager.Instance;
+        if (pm == null) return true;
+
+        int playerCount = pm.PlayerCount;
+        int loopMax = System.Math.Min(playerCount, System.Math.Min(paths.Count, 2));
+        if (playerCount <= loopMax) return true; // safe to run original
+
+        MelonLogger.Msg($"[DropshipManager] Clamping pickup-dropships to {loopMax} (PlayerCount={playerCount}, scenePaths={paths.Count}).");
+
+        var dropships = __instance.Dropships;
+        UnityEngine.Events.UnityAction<Dropship>? handler = null;
+        if (_handlePickup != null)
+        {
+            handler = (UnityEngine.Events.UnityAction<Dropship>)System.Delegate.CreateDelegate(
+                typeof(UnityEngine.Events.UnityAction<Dropship>), __instance, _handlePickup);
+        }
+
+        for (int i = 0; i < loopMax; i++)
+        {
+            var path = paths[i] as Component;
+            if (path == null) continue;
+            var ship = path.GetComponentInChildren<Dropship>(true);
+            if (ship == null) continue;
+            ship.StartMovement();
+            if (handler != null) ship.OnPickUpStarted.AddListener(handler);
+            _rpcActivate?.Invoke(__instance, new object[] { i });
+            dropships.Set(i, ship);
+        }
+        _onDropShipSpawned?.Invoke(__instance, null);
+        _rpcDropShipsSpawned?.Invoke(__instance, null);
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(DropshipManager), "HandlePickupCompleted")]
+internal static class Patch_DropshipManager_LowerThreshold
+{
+    private static readonly System.Reflection.FieldInfo? _completedField =
+        AccessTools.Field(typeof(DropshipManager), "_completedPickup");
+    private static readonly System.Reflection.MethodInfo? _coComplete =
+        AccessTools.Method(typeof(DropshipManager), "CoCompletePickup");
+
+    private static bool Prefix(DropshipManager __instance, Dropship dropship)
+    {
+        if (_completedField == null || _coComplete == null) return true;
+        var pm = PlayerManager.Instance;
+        if (pm == null) return true;
+
+        var dropships = __instance.Dropships;
+        int totalSpawned = 0, picked = 0;
+        for (int i = 0; i < dropships.Length; i++)
+        {
+            var d = dropships[i];
+            if (d == null) continue;
+            totalSpawned++;
+            if (d.HasPickedUpMech()) picked++;
+        }
+        if (totalSpawned == 0) return true;
+
+        int threshold = System.Math.Max(1, System.Math.Min(pm.PlayerCount, totalSpawned));
+        var completed = (bool)_completedField.GetValue(__instance);
+        if (picked >= threshold && !completed)
+        {
+            var co = (System.Collections.IEnumerator)_coComplete.Invoke(__instance, null);
+            __instance.StartCoroutine(co);
+        }
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(DropoffManager), "CoWaitForMechInitialized")]
+internal static class Patch_DropoffManager_SkipForExtras
+{
+    private static bool Prefix(DropoffManager __instance, AlterEyes.BigShots.Player.Player player, ref System.Collections.IEnumerator __result)
+    {
+        var pm = PlayerManager.Instance;
+        if (pm == null) return true;
+        var sorted = pm.AllPlayers
+            .Where(p => p != null && p.Object != null)
+            .OrderBy(p => p.Object.StateAuthority.PlayerId)
+            .ToList();
+        int idx = sorted.IndexOf(player);
+        if (idx < 0 || idx < 2) return true;
+
+        MelonLogger.Msg($"[DropoffManager] Player slot {idx} (#{player.Object.StateAuthority.PlayerId}) skipping dropoff cinematic.");
+        __result = SkipDropoff(__instance, player);
+        return false;
+    }
+
+    private static System.Collections.IEnumerator SkipDropoff(DropoffManager mgr, AlterEyes.BigShots.Player.Player player)
+    {
+        while (player == null || player.MechReferences == null
+               || player.MechReferences.Object == null || !player.MechReferences.Object.IsValid)
+            yield return null;
+        while (!player.MechReferences.IsInitialized) yield return null;
+
+        player.MechReferences.RPC_SetCharacterControllerState(true);
+        player.MechReferences.RPC_SetReady(isReady: true);
+        player.MechReferences.Shutters.RPC_SetShutterState(true);
+        mgr.OnMechDroppedOff?.Invoke();
     }
 }
 

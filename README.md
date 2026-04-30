@@ -7,8 +7,8 @@ A MelonLoader mod for **BIG SHOTS** by AlterEyes that lifts the 2-player session
 - Live **Party X/N** in the Game tab header
 - Auto-clicks **Continue Offline** if the startup connection prompt appears
 
-> **What works at 4-8 players:** networking, lobby, combat, waves, scoring, revives.
-> **What doesn't (yet):** the start-of-shift arrival dropships and end-of-shift dropoff dropships are hardcoded for 2 mechs each, so players 3+ may share/skip dropships. Everything else scales.
+> **What works at 4-8 players:** networking, lobby, combat, waves, scoring, revives, level transitions.
+> **The compromise:** the start-of-shift drop-in and end-of-shift pickup cinematics are hardcoded for 2 dropships per level. Players 3+ skip both cinematics — they're spawned in directly at mission start and warped to the next level on completion. Everyone else still gets the normal animations.
 
 ---
 
