@@ -1,118 +1,97 @@
 # BigShots Tweaks
 
-A MelonLoader mod for **BIG SHOTS** (the Mono Unity game by AlterEyes). Currently ships one tweak: a configurable max-player cap that lifts the vanilla 2-player limit (default 8, range 2–200).
+A MelonLoader mod for **BIG SHOTS** by AlterEyes that lifts the 2-player session cap.
 
-## Features
+- Configurable max players (default **8**, range 2-200)
+- In-game slider in **Settings -> Game**, right after Region
+- Live **Party X/N** in the Game tab header
+- Auto-clicks **Continue Offline** if the startup connection prompt appears
 
-| Setting | Default | Range | Notes |
-|---|---|---|---|
-| `MaxPlayers` | 8 | 2–200 | Photon Fusion Shared mode supports up to 200. The lobby UI only has 2 visible slots — players 3+ join via room code. |
+> **What works at 4-8 players:** networking, lobby, combat, waves, scoring, revives.
+> **What doesn't (yet):** the start-of-shift arrival dropships and end-of-shift dropoff dropships are hardcoded for 2 mechs each, so players 3+ may share/skip dropships. Everything else scales.
 
-Config lives at `BIG SHOTS/UserData/BigShotsTweaks.cfg` and is auto-created on first run. Edit and restart the game.
+---
+
+## Install
+
+### 1. Install MelonLoader
+
+Download the [MelonLoader installer](https://melonloader.co/), launch it, click **Select** and point it at `BigShots.exe` (in your BIG SHOTS Steam folder), pick MelonLoader 0.7.2 or newer, and click **Install**. Run BIG SHOTS once after — MelonLoader will create the `Mods/` and `UserData/` folders inside the game directory.
+
+### 2. Run the setup script
+
+Download **[the latest release zip](../../releases/latest)** and extract it anywhere.
+
+> **What the script will do — read this before running.**
+> - Stop Steam (and BIG SHOTS if it's running). Don't run this during a Steam update or while verifying game files.
+> - Rename the install folder from `BIG SHOTS®` to `BIG SHOTS` (the ® causes problems for some Unity tooling).
+> - Patch Steam's `appmanifest_<appid>.acf` so Steam still sees the game as installed. The original is backed up next to it as `appmanifest_<appid>.acf.bst.bak`.
+> - Copy `BigShotsTweaks.dll` into `<game>/Mods/`.
+
+Then run **`Setup-BigShotsFolder.bat`** (or the `.ps1` from PowerShell). It auto-detects Steam (registry + common paths, scans every Steam library), prints the plan, and waits for confirmation before doing anything.
+
+If the script can't find `<game>/Mods/` it stops with a red error pointing back to MelonLoader — that means step 1 was skipped or failed.
+
+### 3. Launch BIG SHOTS via Steam
+
+Look in `BIG SHOTS/MelonLoader/Latest.log` for `[BigShotsTweaks] Loaded.` to confirm the mod is running.
+
+### Script flags
+
+```
+.\Setup-BigShotsFolder.ps1                     # full install (interactive)
+.\Setup-BigShotsFolder.ps1 -Revert             # rename folder back, restore manifest (does NOT uninstall the mod)
+.\Setup-BigShotsFolder.ps1 -NoInstallMod       # rename + manifest patch only
+.\Setup-BigShotsFolder.ps1 -SteamRoot "D:\Steam"   # override auto-detect
+.\Setup-BigShotsFolder.ps1 -Yes                # skip the "press Enter to continue" prompt - only use if you know what the script does
+```
+
+### Manual install (skip the rename)
+
+If you'd rather not touch Steam's manifest, drop `BigShotsTweaks.dll` directly into `BIG SHOTS®/Mods/`. The mod itself doesn't care about the folder name — only the build/dev tooling does. Steam's "Verify Integrity" won't undo this, but you also don't get the cleaner folder name.
+
+---
+
+## Configuration
+
+The config is auto-created on first run at `BIG SHOTS/UserData/BigShotsTweaks.cfg`:
 
 ```toml
 [BigShotsTweaks]
-MaxPlayers = 8
+MaxPlayers = 8                  # 2-200 (in-game slider caps at 8; edit cfg for higher)
+AutoContinueOffline = true      # auto-click the startup "continue offline" button
 ```
 
-## Install (end users)
-
-1. Install [MelonLoader 0.7.2+](https://melonloader.co/) into the BIG SHOTS folder.
-2. Drop `BigShotsTweaks.dll` (from [Releases](../../releases)) into `BIG SHOTS/Mods/`.
-3. Launch the game once. The mod creates `UserData/BigShotsTweaks.cfg` — edit it to taste, restart.
+The in-game slider (Settings -> Game) writes the same file live.
 
 ---
 
-## Building from source
+## Uninstall
 
-### One-time setup
+1. Delete `<game>/Mods/BigShotsTweaks.dll`.
+2. (Optional) Run `Setup-BigShotsFolder.ps1 -Revert` to rename the folder back to `BIG SHOTS®` and restore the original Steam manifest.
+3. (Optional) Delete `<game>/UserData/BigShotsTweaks.cfg` to remove your settings.
 
-The game's Steam folder is named `BIG SHOTS®` with a registered-trademark glyph, which makes melon loader unhappy. The `.csproj` references the clean path `BIG SHOTS`, so we need one of the approaches below.
-
-**Option A — Rename + patch Steam manifest (recommended).** Run the helper script in `scripts/`. It closes Steam, renames the folder to `BIG SHOTS`, patches `appmanifest_<appid>.acf`'s `installdir`, and backs up the original manifest. Re-run with `-Revert` to undo.
-
-```cmd
-scripts\Setup-BigShotsFolder.bat
-```
-
-```powershell
-.\scripts\Setup-BigShotsFolder.ps1            # rename
-.\scripts\Setup-BigShotsFolder.ps1 -Revert    # undo
-```
-
-Caveat: Steam's **Verify Integrity of Game Files** may reset `installdir` and rename the folder back to `BIG SHOTS®`. Just re-run the script if that happens.
-
-**Option B — Junction (no admin needed).** A junction is a directory link that doesn't require admin or Windows Developer Mode:
-
-```cmd
-mklink /J "C:\Program Files (x86)\Steam\steamapps\common\BIG SHOTS" "C:\Program Files (x86)\Steam\steamapps\common\BIG SHOTS®"
-```
-
-**Option C — Symbolic link (admin required).** Same idea as a junction but requires admin or Developer Mode:
-
-```powershell
-$steam = "C:\Program Files (x86)\Steam\steamapps\common"
-New-Item -ItemType SymbolicLink -Path "$steam\BIG SHOTS" -Target "$steam\BIG SHOTS®"
-```
-
-### Build
-
-```bash
-dotnet build mod/BigShotsTweaks.csproj -c Release
-```
-
-Two things happen automatically on a Release build:
-
-1. **Deploy** — `BigShotsTweaks.dll` is copied to `BIG SHOTS/Mods/` so you can launch and test immediately.
-2. **Stage release** — a versioned copy lands in `Releases/BigShotsTweaks-v<Version>.dll`.
-
-Bump `<Version>` in `mod/BigShotsTweaks.csproj` (and the matching `MelonInfo` string in `Mod.cs`) before tagging a release.
-
-### Launch
-
-Either click Play in Steam, or:
-
-```powershell
-& "C:\Program Files (x86)\Steam\steamapps\common\BIG SHOTS\BigShots.exe"
-```
-
-MelonLoader's log is at `BIG SHOTS/MelonLoader/Latest.log`. Look for `[BigShotsTweaks] Loaded. MaxPlayers = ...` to confirm it's running.
+To remove MelonLoader entirely, see the [MelonLoader uninstall docs](https://melonwiki.xyz/#/?id=uninstalling-melonloader).
 
 ---
 
-## Decompiling the game (for development)
+## Troubleshooting
 
-Game source isn't shipped, but you can dump readable C# locally with [ilspycmd](https://github.com/icsharpcode/ILSpy):
-
-```bash
-dotnet tool install -g ilspycmd
-cd "/c/Program Files (x86)/Steam/steamapps/common/BIG SHOTS/BigShots_Data/Managed"
-for dll in AlterEyes.BigShots.*.dll; do
-  name="${dll%.dll}"; name="${name#AlterEyes.BigShots.}"
-  out="/c/Users/micha/Documents/GitHub/BigShots-tweaks/decompiled/$name"
-  mkdir -p "$out" && ilspycmd -p -o "$out" "$dll"
-done
-```
-
-The `decompiled/` folder is `.gitignore`d — regenerate after game updates.
-
----
-
-## Releasing
-
-Local: every Release build stages a versioned DLL in `Releases/`.
-
-GitHub Releases: push a tag and the workflow at `.github/workflows/release.yml` creates a release with the staged DLL attached.
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-Note: GitHub's CI runners don't have BIG SHOTS installed, so the workflow's build step is gated behind `stubs/` reference assemblies. For now it functions as a tag-and-publish helper — build locally, commit the staged `Releases/*.dll`, tag, push.
+| Symptom | Likely cause |
+|---|---|
+| Nothing happens / no log line | MelonLoader isn't installed, or DLL isn't in `Mods/` |
+| "Mods folder does not exist" red error from the script | MelonLoader install was skipped or failed |
+| Folder renamed back to `BIG SHOTS®` after a Steam update | Steam's "Verify Integrity" reset the manifest. Re-run `Setup-BigShotsFolder.bat`. |
+| `Setup` script can't find Steam | Pass `-SteamRoot "X:\Path\To\Steam"` |
+| Players 3+ get stuck on the dropship at mission start/end | Known limitation — see the warning at the top |
 
 ---
 
 ## License
 
 No license selected. Modding is for personal/community use; respect AlterEyes' rights to the game.
+
+---
+
+Building from source, decompiling, releasing: see **[DEVELOPMENT.md](DEVELOPMENT.md)**.
