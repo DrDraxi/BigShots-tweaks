@@ -131,8 +131,8 @@
     <Copy SourceFiles="$(ScriptsDir)\Setup-BigShotsFolder.ps1" DestinationFolder="$(StagingDir)" />
     <Copy SourceFiles="$(ScriptsDir)\Setup-BigShotsFolder.bat" DestinationFolder="$(StagingDir)" />
     <Delete Files="$(ZipPath)" />
+    <Delete Files="$(ReleasesDir)\BigShotsTweaks-v$(Version).dll" />
     <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(ZipPath)" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(ReleasesDir)\BigShotsTweaks-v$(Version).dll" />
     <Message Text="Staged release: $(ZipPath)" Importance="high" />
   </Target>
 

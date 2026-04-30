@@ -64,7 +64,7 @@ The `decompiled/` folder is `.gitignore`d — regenerate after game updates.
 
 Local: every Release build stages a versioned zip in `Releases/`.
 
-GitHub Releases: tag and the workflow at `.github/workflows/release.yml` creates a release with the staged artifacts attached:
+GitHub Releases: tag and the workflow at `.github/workflows/release.yml` creates a release with the staged zip attached:
 
 ```bash
 git tag v1.0.0

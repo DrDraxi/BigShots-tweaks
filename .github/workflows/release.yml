@@ -27,5 +27,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: Releases/*.dll
+          files: Releases/*.zip
           generate_release_notes: true
