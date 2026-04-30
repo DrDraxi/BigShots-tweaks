@@ -98,11 +98,6 @@ function Find-ModDll {
         (Join-Path $scriptDir '..\mod\bin\Release\BigShotsTweaks.dll')
     )
     foreach ($c in $candidates) { if (Test-Path $c) { return (Resolve-Path $c).Path } }
-    $relDir = Join-Path $scriptDir '..\Releases'
-    if (Test-Path $relDir) {
-        $latest = Get-ChildItem $relDir -Filter 'BigShotsTweaks-v*.dll' -File | Sort-Object Name -Descending | Select-Object -First 1
-        if ($latest) { return $latest.FullName }
-    }
     return $null
 }
 
