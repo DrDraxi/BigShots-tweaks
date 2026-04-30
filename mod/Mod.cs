@@ -14,7 +14,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.1.0", "DrDraxi")]
+[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.1.1", "DrDraxi")]
 [assembly: MelonGame("AlterEyes", "BigShots")]
 
 namespace BigShotsTweaks;
@@ -29,11 +29,12 @@ public class Mod : MelonMod
     public static bool AutoContinueOffline => _autoContinueOffline.Value;
 
     internal const int SliderMin = 2;
-    internal const int SliderMax = 8;
+    internal const int SliderMax = 4;
+    internal const int HardCap = 4;
 
     internal static void SetMaxPlayers(int v)
     {
-        _maxPlayers.Value = Mathf.Clamp(v, 2, 200);
+        _maxPlayers.Value = Mathf.Clamp(v, SliderMin, HardCap);
         _cat.SaveToFile(printmsg: false);
     }
 
@@ -46,10 +47,10 @@ public class Mod : MelonMod
         _cat.SetFilePath("UserData/BigShotsTweaks.cfg");
 
         _maxPlayers = _cat.CreateEntry(
-            "MaxPlayers", 8,
+            "MaxPlayers", 4,
             "Max Players",
-            "Maximum players per session. Vanilla cap is 2. Photon Fusion Shared mode supports up to 200; the lobby UI only has 2 visible slots, so players 3+ join via room code.",
-            validator: new ValueRange<int>(2, 200));
+            "Maximum players per session. Vanilla cap is 2; mod ceiling is 4 (PlayerManager's networked player dictionary has [Capacity(4)] baked into IL via Photon Fusion's weaver). Players 3-4 join via room code since the lobby UI has only 2 visible slots.",
+            validator: new ValueRange<int>(2, 4));
 
         _autoContinueOffline = _cat.CreateEntry(
             "AutoContinueOffline", true,

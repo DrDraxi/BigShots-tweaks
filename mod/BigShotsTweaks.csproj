@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>BigShotsTweaks</AssemblyName>
     <RootNamespace>BigShotsTweaks</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <ReleasesDir>$(MSBuildThisFileDirectory)..\Releases</ReleasesDir>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>

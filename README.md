@@ -1,14 +1,16 @@
 # BigShots Tweaks
 
-A MelonLoader mod for **BIG SHOTS** by AlterEyes that lifts the 2-player session cap.
+A MelonLoader mod for **BIG SHOTS** by AlterEyes that lifts the 2-player session cap to **4**.
 
-- Configurable max players (default **8**, range 2-200)
+- Configurable max players (default **4**, range 2-4)
 - In-game slider in **Settings -> Game**, right after Region
 - Live **Party X/N** in the Game tab header
 - Auto-clicks **Continue Offline** if the startup connection prompt appears
 
-> **What works at 4-8 players:** networking, lobby, combat, waves, scoring, revives, level transitions.
-> **The compromise:** the start-of-shift drop-in and end-of-shift pickup cinematics are hardcoded for 2 dropships per level. Players 3+ skip both cinematics — they're spawned in directly at mission start and warped to the next level on completion. Everyone else still gets the normal animations.
+> **Why 4 and not 8?** `PlayerManager._playerRefPerPlayer` is a Photon Fusion `NetworkDictionary` with `[Capacity(4)]` baked in by Fusion's IL weaver. Players 5+ silently fail to register at the network layer, so 4 is the real ceiling without re-weaving the assembly.
+
+> **What works at 3-4 players:** networking, lobby, combat, waves, scoring, revives, level transitions.
+> **The compromise:** the start-of-shift drop-in and end-of-shift pickup cinematics are hardcoded for 2 dropships per level. Players 3-4 skip both cinematics — they spawn in directly at mission start and warp to the next level on completion. Players 1 and 2 still get the normal animations.
 
 ---
 
@@ -58,7 +60,7 @@ The config is auto-created on first run at `BIG SHOTS/UserData/BigShotsTweaks.cf
 
 ```toml
 [BigShotsTweaks]
-MaxPlayers = 8                  # 2-200 (in-game slider caps at 8; edit cfg for higher)
+MaxPlayers = 4                  # 2-4 (hard ceiling; see the "why 4 and not 8" note above)
 AutoContinueOffline = true      # auto-click the startup "continue offline" button
 ```
 
