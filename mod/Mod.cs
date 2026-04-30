@@ -18,7 +18,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.2.0", "DrDraxi")]
+[assembly: MelonInfo(typeof(BigShotsTweaks.Mod), "BigShotsTweaks", "1.2.1", "DrDraxi")]
 [assembly: MelonGame("AlterEyes", "BigShots")]
 
 namespace BigShotsTweaks;
