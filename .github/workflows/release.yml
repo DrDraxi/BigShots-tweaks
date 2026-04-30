@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # Game DLLs aren't on the runner, so skip references that need them by
+      # building against stub assemblies in `stubs/` (drop them in there if you
+      # want CI builds). Otherwise this workflow is for tagging only.
+      - name: Build
+        if: hashFiles('stubs/**/*.dll') != ''
+        run: dotnet build mod/BigShotsTweaks.csproj -c Release -p:ManagedDir=${{ github.workspace }}\stubs -p:MelonDir=${{ github.workspace }}\stubs
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Releases/*.dll
+          generate_release_notes: true
